@@ -1,6 +1,7 @@
 const userModel = require("../models/user.model");
 const bcrypt =require("bcryptjs");
 const jwt = require("jsonwebtoken")
+const tokenBlacklist = require("../models/blacklist.model.js")
 /**
  * @name registterUserContoller
  * @description register a new user , expects username,email aand password
@@ -59,7 +60,11 @@ return res.status(200).json({
 })
    
 }
-
+/**
+ * @name loginUserController
+ * @description for login a user 
+ * @access public 
+ */
 async function loginUserController(req,res){
     const {email,password} = req.body
     const user = await userModel.findOne({email});
@@ -91,6 +96,43 @@ async function loginUserController(req,res){
         }
      })
 }
+/**
+ * @name logout
+ * @description logout user and blacklist them
+ * @access public
+ */
+
+async function logoutController(req,res){
+    const token = req.cookies.token;
+
+    if(token){
+        await tokenBlacklist.create({token});
+    }
+    res.clearCookie("token");
+    res.status(200).json({
+        message:"User logged out successful"
+    })
+}
 
 
-module.exports ={registerUserController,loginUserController}
+/**
+ * @name getMe
+ * @description get the detail of user 
+ * @access private
+ * 
+ */
+  async function getMe(req,res){
+        const userdetail = await userModel.findOne({username:req.user.username})
+        if(!userdetail){
+            return res.status(400).json({
+                message:"user doesnot exist"
+            })
+        }
+        return res.status(200).json({
+            user:{
+                user:userdetail.username,
+                email:userdetail.email,
+            }})
+   }
+ 
+module.exports ={registerUserController,loginUserController,logoutController,getMe}
